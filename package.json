@@ -1,0 +1,31 @@
+{
+  "name": "iexec-doracle-examples",
+  "version": "0.0.1",
+  "description": "",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iExecBlockchainComputing/iexec-doracle-examples.git"
+  },
+  "bugs": {
+    "url": "https://github.com/iExecBlockchainComputing/iexec-doracle-examples.git/issues"
+  },
+  "files": [
+    "/build",
+    "/contracts",
+    "/scripts"
+  ],
+  "author": "iExec",
+  "license": "ISC",
+  "homepage": "https://github.com/iExecBlockchainComputing/iexec-doracle-examples.git#readme",
+  "dependencies": {
+    "iexec-doracle-base": "^0.0.6",
+    "iexec-poco": "^3.0.35",
+    "iexec-solidity": "^0.0.7",
+    "openzeppelin-solidity": "^2.2.0"
+  },
+  "devDependencies": {
+    "ganache-cli": "^6.5.0",
+    "truffle": "^5.0.28",
+    "truffle-hdwallet-provider": "^1.0.14"
+  }
+}
