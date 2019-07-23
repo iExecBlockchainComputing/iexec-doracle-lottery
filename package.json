@@ -18,12 +18,14 @@
   "license": "ISC",
   "homepage": "https://github.com/iExecBlockchainComputing/iexec-doracle-examples.git#readme",
   "dependencies": {
-    "iexec-doracle-base": "^0.0.6",
+    "iexec-doracle-base": "^0.0.7",
     "iexec-poco": "^3.0.35",
     "iexec-solidity": "^0.0.7",
-    "openzeppelin-solidity": "^2.2.0"
+    "openzeppelin-solidity": "^2.2.0",
+    "rlc-faucet-contract": "^1.0.8"
   },
   "devDependencies": {
+    "ethers": "^4.0.33",
     "ganache-cli": "^6.5.0",
     "truffle": "^5.0.28",
     "truffle-hdwallet-provider": "^1.0.14"
