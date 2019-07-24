@@ -36,8 +36,7 @@ function viewLottery(lotteryID)
 		lottery
 		.lotteryMetadata(lotteryID)
 		.then(details => {
-			const now       = Date.now()/1000;
-			const remaining = details.registrationDeadline - now;
+			const remaining = details.crowdsaleDeadline - Date.now() / 1000;
 			const reached   = remaining < 0;
 
 			console.log(`Status:          ${statusToString(details.status)}`);
@@ -45,7 +44,7 @@ function viewLottery(lotteryID)
 			console.log(`Value in pot:    ${details.potValue.toString()}`);
 			console.log(`Tickets sold:    ${details.ticketCount.toString()}`);
 			console.log(`Tickets maximum: ${details.ticketMaxCount.toString()}`);
-			console.log(`Deadline:        ${details.registrationDeadline.toString()}`);
+			console.log(`Deadline:        ${details.crowdsaleDeadline.toString()}`);
 			console.log(`Crowd sale:      ${reached?"Closed":"Open"}`);
 			if (!reached)
 			{
