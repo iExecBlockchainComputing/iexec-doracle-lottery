@@ -1,33 +1,61 @@
 {
-  "name": "iexec-doracle-examples",
-  "version": "0.0.1",
-  "description": "",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/iExecBlockchainComputing/iexec-doracle-examples.git"
-  },
-  "bugs": {
-    "url": "https://github.com/iExecBlockchainComputing/iexec-doracle-examples.git/issues"
-  },
-  "files": [
-    "/build",
-    "/contracts",
-    "/scripts"
-  ],
-  "author": "iExec",
-  "license": "ISC",
-  "homepage": "https://github.com/iExecBlockchainComputing/iexec-doracle-examples.git#readme",
-  "dependencies": {
-    "iexec-doracle-base": "^0.0.7",
-    "iexec-poco": "^3.0.35",
-    "iexec-solidity": "^0.0.7",
-    "openzeppelin-solidity": "^2.2.0",
-    "rlc-faucet-contract": "^1.0.8"
-  },
-  "devDependencies": {
-    "ethers": "^4.0.33",
-    "ganache-cli": "^6.5.0",
-    "truffle": "^5.0.28",
-    "truffle-hdwallet-provider": "^1.0.14"
-  }
+	"name": "iexec-doracle-lottery",
+	"version": "0.0.1",
+	"description": "",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/iExecBlockchainComputing/iexec-doracle-lottery.git"
+	},
+	"bugs": {
+		"url": "https://github.com/iExecBlockchainComputing/iexec-doracle-lottery.git/issues"
+	},
+	"author": "iExec",
+	"license": "ISC",
+	"homepage": "https://github.com/iExecBlockchainComputing/iexec-doracle-lottery.git#readme",
+	"dependencies": {
+		"@fortawesome/fontawesome-svg-core": "^1.2.15",
+		"@fortawesome/free-solid-svg-icons": "^5.7.2",
+		"@fortawesome/react-fontawesome": "^0.1.4",
+		"bootstrap": "^4.3.1",
+		"ethers": "^4.0.33",
+		"fbemitter": "^2.1.1",
+		"iexec": "^3.0.34",
+		"jquery": "^3.4.1",
+		"localforage": "^1.7.3",
+		"mdbreact": "^4.11.0",
+		"node-notifier": "^5.4.0",
+		"react": "^16.8.6",
+		"react-bootstrap": "^1.0.0-beta.10",
+		"react-cookie": "^4.0.1",
+		"react-dom": "^16.8.6",
+		"react-fontawesome": "^1.6.1",
+		"react-notifications": "^1.4.3",
+		"react-router-dom": "^5.0.1",
+		"react-scripts": "^3.0.1",
+		"react-toastify": "^5.3.2",
+		"iexec-doracle-base": "^0.0.7",
+		"iexec-poco": "^3.0.35",
+		"iexec-solidity": "^0.0.7",
+		"openzeppelin-solidity": "^2.2.0",
+		"rlc-faucet-contract": "^1.0.8",
+		"ganache-cli": "^6.5.0",
+		"truffle": "^5.0.28",
+		"truffle-hdwallet-provider": "^1.0.14"
+	},
+	"scripts": {
+		"truffle:build": "truffle compile",
+		"react:start":   "react-scripts start",
+		"react:build":   "react-scripts build",
+		"react:test":    "react-scripts test",
+		"react:eject":   "react-scripts eject"
+	},
+	"eslintConfig": {
+		"extends": "react-app"
+	},
+	"browserslist": [
+		">0.2%",
+		"not dead",
+		"not ie <= 11",
+		"not op_mini all"
+	]
 }

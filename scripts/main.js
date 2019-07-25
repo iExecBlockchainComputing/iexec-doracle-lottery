@@ -3,15 +3,14 @@ const iexec      = require('iexec');
 
 const RLC     = require("rlc-faucet-contract/build/contracts/RLC.json");
 const CLERK   = require("iexec-poco/build/contracts-min/IexecClerk.json");
-const LOTTERY = require("../build/contracts/Lottery.json");
+const LOTTERY = require("../../build/contracts/Lottery.json");
 
 const CHAIN           = "kovan";
-const LOTTERY_ADDR    = "0x5eBD616389e5BC21fbbE570a435F081991b9f9F3";
+const LOTTERY_ADDR    = "0x81C67400A32EC6deB0bb47d38a5a98F7cec293F0";
 
 const APP_ADDR        = "0xB43c71cb72A1EA1CAcF3F30F476155F48285F790";
 const DATASET_ADDR    = undefined;
-const WORKERPOOL_ADDR = "0xE4F0A428c71e9C9647907Fb339991748fC345413";
-// const WORKERPOOL_ADDR = undefined;
+const WORKERPOOL_ADDR = undefined;
 const CATEGORIES      = [0,1,2,3,4];
 
 ethers.errors.setLogLevel("error");
@@ -24,9 +23,8 @@ function statusToString(status)
 	switch(status.toString())
 	{
 		case '0': return 'NULL';     break;
-		case '1': return 'OPEN';     break;
-		case '2': return 'ROLLING';  break;
-		case '3': return 'FINISHED'; break;
+		case '1': return 'ACTIVE';   break;
+		case '2': return 'FINISHED'; break;
 	}
 }
 
@@ -34,7 +32,7 @@ function viewLottery(lotteryID)
 {
 	return new Promise((resolve, reject) => {
 		lottery
-		.lotteryMetadata(lotteryID)
+		.viewLottery(lotteryID)
 		.then(details => {
 			const remaining = details.crowdsaleDeadline - Date.now() / 1000;
 			const reached   = remaining < 0;
@@ -65,7 +63,7 @@ function buyTicket(wallet, lotteryID)
 {
 	return new Promise((resolve, reject) => {
 		lottery
-		.lotteryMetadata(lotteryID)
+		.viewLottery(lotteryID)
 		.then( ({ ticketPrice }) => {
 			rlc
 			.connect(wallet)
@@ -190,7 +188,7 @@ function receiveResult(lotteryID)
 {
 	return new Promise((resolve, reject) => {
 		lottery
-		.lotteryMetadata(lotteryID)
+		.viewLottery(lotteryID)
 		.then( ({ oracleCall }) => {
 			lottery
 			.receiveResult(oracleCall, "0x")
@@ -223,12 +221,14 @@ function receiveResult(lotteryID)
 	console.log(`RLC balance:    ${(await rlc.balanceOf(wallet.address)).toString()}`);
 	console.log("--------------------------------");
 
-	const lotteryID = 3;
+	const lotteryID = 0;
 
 	// CREATE - OK
 	// await (await lottery.createLottery(10, 10, 600)).wait();
 
 	// BUY - OK
+	// await buyTicket(wallet, lotteryID);
+	// await buyTicket(wallet, lotteryID);
 	// await buyTicket(wallet, lotteryID);
 	// await buyTicket(wallet, lotteryID);
 

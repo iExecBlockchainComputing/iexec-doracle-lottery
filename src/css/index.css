@@ -1,0 +1,47 @@
+.lottery
+{
+	margin: 20px;
+}
+
+.lottery .header
+{
+	position:      relative;
+	padding:       5px;
+	border-radius: 5px;
+}
+
+.lottery .header .badge
+{
+	position:      absolute;
+	top:           0;
+	right:         0;
+	margin-top:   -8px;
+	margin-right: -10px;
+}
+
+.lottery .details
+{
+	position: relative;
+	margin:   0 20px;
+
+}
+
+.lottery .details-content
+{
+	padding: 15px;
+}
+
+.lottery .toggle
+{
+	position:         absolute;
+	width:            100px;
+	height:           20px;
+	bottom:           0;
+	left:             50%;
+	margin-bottom:    -10px;
+	margin-left:      -50px;
+	padding:          0;
+	border:           1px solid #CCCCCC;
+	color:            inherit !important;
+	font-weight:      inherit !important;
+}

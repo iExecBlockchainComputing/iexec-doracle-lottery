@@ -39,9 +39,9 @@ contract Lottery is IexecDoracle, ERC721Full
 		uint256 ticketNumber;
 	}
 
-	LotteryMetadata[]                  public lotteryMetadata;
-	mapping(uint256 => TicketMetadata) public ticketMetadata;
-	mapping(bytes32 => uint256       ) public oracleCallToLottery;
+	LotteryMetadata[]                  private m_lotteryMetadata;
+	mapping(uint256 => TicketMetadata) private m_ticketMetadata;
+	mapping(bytes32 => uint256       ) private m_oracleCallToLottery;
 
 	event NewLottery    (uint256 indexed lotteryid);
 	event NewParticipant(uint256 indexed lotteryid, uint256 ticketid);
@@ -52,20 +52,17 @@ contract Lottery is IexecDoracle, ERC721Full
 
 	modifier crowSaleActive(uint256 _lotteryID)
 	{
-		LotteryMetadata storage details = lotteryMetadata[_lotteryID];
+		LotteryMetadata storage details = m_lotteryMetadata[_lotteryID];
 		require(now <= details.crowdsaleDeadline);
 		require(details.ticketCount < details.ticketMaxCount);
 		_;
 	}
 	modifier crowSaleFinished(uint256 _lotteryID)
 	{
-		LotteryMetadata storage details = lotteryMetadata[_lotteryID];
+		LotteryMetadata storage details = m_lotteryMetadata[_lotteryID];
 		require(now > details.crowdsaleDeadline);
 		_;
 	}
-
-
-
 
 	/***************************************************************************
 	 *                               Constructor                               *
@@ -87,6 +84,11 @@ contract Lottery is IexecDoracle, ERC721Full
 		token = iexecClerk.token();
 	}
 
+	function countLottery       (                  ) external view returns (uint256               ) { return m_lotteryMetadata.length;          }
+	function viewLottery        (uint256 lotteryID ) external view returns (LotteryMetadata memory) { return m_lotteryMetadata    [lotteryID];  }
+	function viewTicket         (uint256 ticketID  ) external view returns (TicketMetadata  memory) { return m_ticketMetadata     [ticketID];   }
+	function oracleCallToLottery(bytes32 oracleCall) external view returns (uint256               ) { return m_oracleCallToLottery[oracleCall]; }
+
 	/***************************************************************************
 	 *                          LOTTERY - Create game                          *
 	 ***************************************************************************/
@@ -96,9 +98,9 @@ contract Lottery is IexecDoracle, ERC721Full
 		uint256 _duration)
 	public
 	{
-		uint256 lotteryID = lotteryMetadata.length++;
+		uint256 lotteryID = m_lotteryMetadata.length++;
 
-		LotteryMetadata storage details = lotteryMetadata[lotteryID];
+		LotteryMetadata storage details = m_lotteryMetadata[lotteryID];
 		details.status            = LotteryStatusEnum.ACTIVE;
 		details.ticketPrice       = _ticketPrice;
 		details.crowdsaleDeadline = now + _duration;
@@ -128,7 +130,7 @@ contract Lottery is IexecDoracle, ERC721Full
 	internal crowSaleActive(_lotteryID)
 	{
 		// Get lottery details
-		LotteryMetadata storage details = lotteryMetadata[_lotteryID];
+		LotteryMetadata storage details = m_lotteryMetadata[_lotteryID];
 
 		// Pay in tokens
 		require(token.transferFrom(_buyer, address(this), details.ticketPrice));
@@ -154,7 +156,7 @@ contract Lottery is IexecDoracle, ERC721Full
 	public crowSaleFinished(_lotteryID)
 	{
 		// Get lottery details
-		LotteryMetadata storage details = lotteryMetadata[_lotteryID];
+		LotteryMetadata storage details = m_lotteryMetadata[_lotteryID];
 
 		// Check lottery status
 		require(details.oracleCall == bytes32(0));
@@ -195,8 +197,8 @@ contract Lottery is IexecDoracle, ERC721Full
 		bytes32 taskid = keccak256(abi.encodePacked(dealid, uint256(0)));
 
 		// Register
-		details.oracleCall          = taskid;
-		oracleCallToLottery[taskid] = _lotteryID;
+		details.oracleCall            = taskid;
+		m_oracleCallToLottery[taskid] = _lotteryID;
 
 		emit NewRoll(_lotteryID, taskid);
 	}
@@ -207,10 +209,10 @@ contract Lottery is IexecDoracle, ERC721Full
 	function receiveResult(bytes32 _doracleCallId, bytes memory)
 	public
 	{
-		uint256 lotteryID = oracleCallToLottery[_doracleCallId];
+		uint256 lotteryID = m_oracleCallToLottery[_doracleCallId];
 
 		// Get lottery details
-		LotteryMetadata storage details = lotteryMetadata[lotteryID];
+		LotteryMetadata storage details = m_lotteryMetadata[lotteryID];
 		require(details.status == LotteryStatusEnum.ACTIVE);
 
 		// Get result
@@ -250,7 +252,7 @@ contract Lottery is IexecDoracle, ERC721Full
 	public
 	{
 		// Get lottery details
-		LotteryMetadata storage details = lotteryMetadata[_lotteryID];
+		LotteryMetadata storage details = m_lotteryMetadata[_lotteryID];
 
 		// Get task & dealvalue
 		IexecODBLibCore.Task memory task = iexecHub.viewTask(details.oracleCall);
@@ -282,8 +284,8 @@ contract Lottery is IexecDoracle, ERC721Full
 	{
 		uint256 ticketID = getTicketID(_lotteryID, _ticketIndex);
 		_mint(_buyer, ticketID);
-		ticketMetadata[ticketID].lotteryID    = _lotteryID;
-		ticketMetadata[ticketID].ticketNumber = _ticketIndex;
+		m_ticketMetadata[ticketID].lotteryID    = _lotteryID;
+		m_ticketMetadata[ticketID].ticketNumber = _ticketIndex;
 		return ticketID;
 	}
 
