@@ -239,7 +239,7 @@ class LotteryView extends React.Component
 					{ code === 1 && <MDBBtn gradient="blue"  className="btn-sm col-2" onClick={this.buyTicket(this.props.id)}>Buy ticket<MDBIcon icon="ticket-alt"           className="ml-2"/></MDBBtn> }
 					{ code === 3 && <MDBBtn gradient="peach" className="btn-sm col-2" onClick={this.rollDice(this.props.id)} >Roll dice <MDBIcon icon="dice"                 className="ml-2"/></MDBBtn> }
 					{ code === 4 && <MDBBtn gradient="peach" className="btn-sm col-2" onClick={this.claim(this.props.id)}    >Claim     <MDBIcon icon="exclamation-triangle" className="ml-2"/></MDBBtn> }
-					{ ![1,3,4].includes(code) && <div className="col-2"></div> }
+					{ ![1,3,4].includes(code) && <MDBBtn className="btn-sm col-2 invisible"/> }
 				</div>
 				<LotteryViewDetails id={this.props.id} details={this.state.details}/>
 			</div>
