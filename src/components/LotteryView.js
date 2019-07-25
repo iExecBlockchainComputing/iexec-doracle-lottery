@@ -96,7 +96,6 @@ class LotteryView extends React.Component
 				.wait()
 				.then(tx => {
 					this.props.context.emitter.emit('Notify', 'info', 'Ticket bought');
-					this.refresh();
 				})
 				.catch(console.error);
 			})
@@ -178,9 +177,23 @@ class LotteryView extends React.Component
 				.wait()
 				.then(tx => {
 					this.props.context.emitter.emit('Notify', 'warning', 'Dices are rolling');
-					this.refresh();
 				})
 				.catch(console.error);
+			})
+			.catch(console.error);
+		})
+		.catch(console.error);
+	}
+
+	claim = (lotteryID) => () =>
+	{
+		this.props.context.lottery
+		.claim(lotteryID)
+		.then(txPromise => {
+			txPromise
+			.wait()
+			.then(tx => {
+				this.props.context.emitter.emit('Notify', 'warning', 'Claim successfull');
 			})
 			.catch(console.error);
 		})
@@ -223,11 +236,12 @@ class LotteryView extends React.Component
 							</MDBTableBody>
 						</MDBTable>
 					</div>
-					{ code === 1 && <MDBBtn gradient="blue"  className="btn-sm col-2" onClick={this.buyTicket(this.props.id)}>Buy ticket<MDBIcon icon="ticket-alt" className="ml-1" /></MDBBtn> }
-					{ code === 3 && <MDBBtn gradient="peach" className="btn-sm col-2" onClick={this.rollDice(this.props.id)} >Roll dice <MDBIcon icon="dice"       className="ml-1" /></MDBBtn> }
-					{ code !== 1 && code !== 3 && <div className="col-2"></div> }
+					{ code === 1 && <MDBBtn gradient="blue"  className="btn-sm col-2" onClick={this.buyTicket(this.props.id)}>Buy ticket<MDBIcon icon="ticket-alt"           className="ml-2"/></MDBBtn> }
+					{ code === 3 && <MDBBtn gradient="peach" className="btn-sm col-2" onClick={this.rollDice(this.props.id)} >Roll dice <MDBIcon icon="dice"                 className="ml-2"/></MDBBtn> }
+					{ code === 4 && <MDBBtn gradient="peach" className="btn-sm col-2" onClick={this.claim(this.props.id)}    >Claim     <MDBIcon icon="exclamation-triangle" className="ml-2"/></MDBBtn> }
+					{ ![1,3,4].includes(code) && <div className="col-2"></div> }
 				</div>
-				<LotteryViewDetails parent={this.state}/>
+				<LotteryViewDetails id={this.props.id} details={this.state.details}/>
 			</div>
 		);
 	}

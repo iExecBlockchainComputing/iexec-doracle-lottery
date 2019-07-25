@@ -21,10 +21,13 @@ class LotteryViewDetails extends React.Component
 				<MDBCollapse id="body" isOpen={this.state.collapseID}>
 					<div className="details-content">
 						<p>
-							Pot value: { rlcFormat(this.props.parent.details.potValue) }
+							LotteryID: { this.props.id }
 						</p>
 						<p>
-							Deadline: { (new Date(Number(this.props.parent.details.crowdsaleDeadline) * 1000)).toISOString() }
+							Pot value: { rlcFormat(this.props.details.potValue) }
+						</p>
+						<p>
+							Deadline: { (new Date(Number(this.props.details.crowdsaleDeadline) * 1000)).toISOString() }
 						</p>
 					</div>
 				</MDBCollapse>
