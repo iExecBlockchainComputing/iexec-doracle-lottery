@@ -84,17 +84,25 @@ class Services extends React.Component
 	onNFTTransfer = (from, to, tokenID) => {
 		if (tokenID && from === this.state.walletAddress)
 		{
-			--this.state.ticketsByLottery[this.state.walletNFTBalance[tokenID].lotteryID];
-			delete this.state.walletNFTBalance[tokenID];
+			if (this.state.walletNFTBalance[tokenID])
+			{
+				const lotteryID = this.state.walletNFTBalance[tokenID].lotteryID;
+				delete this.state.walletNFTBalance[tokenID];
+				this.state.ticketsByLottery[lotteryID] = Object.values(this.state.walletNFTBalance).filter(e => e.lotteryID.toString() === lotteryID.toString()).length;
+			}
 		}
 		else if (tokenID && to === this.state.walletAddress)
 		{
-			this.state.lottery
-			.viewTicket(tokenID)
-			.then(ticketDetails => {
-				this.state.ticketsByLottery[ticketDetails.lotteryID] = (this.state.ticketsByLottery[ticketDetails.lotteryID] || 0) + 1;
-				this.state.walletNFTBalance[tokenID] = ticketDetails;
-			});
+			if (!this.state.walletNFTBalance[tokenID])
+			{
+				this.state.lottery
+				.viewTicket(tokenID)
+				.then(ticketDetails => {
+					const lotteryID = ticketDetails.lotteryID;
+					this.state.walletNFTBalance[tokenID] = ticketDetails;
+					this.state.ticketsByLottery[lotteryID] = Object.values(this.state.walletNFTBalance).filter(e => e.lotteryID.toString() === lotteryID.toString()).length;
+				});
+			}
 		}
 		else
 		{

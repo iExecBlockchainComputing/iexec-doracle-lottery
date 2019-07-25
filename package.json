@@ -11,7 +11,7 @@
 	},
 	"author": "iExec",
 	"license": "ISC",
-	"homepage": "https://github.com/iExecBlockchainComputing/iexec-doracle-lottery.git#readme",
+	"homepage": ".",
 	"dependencies": {
 		"@fortawesome/fontawesome-svg-core": "^1.2.15",
 		"@fortawesome/free-solid-svg-icons": "^5.7.2",

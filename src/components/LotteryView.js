@@ -86,7 +86,7 @@ class LotteryView extends React.Component
 	buyTicket = (lotteryID) => () => {
 		if (Number(this.props.context.walletBalance) < Number(this.state.details[2]))
 		{
-			console.error("Not enough tokens!");
+			this.props.context.emitter.emit('Notify', 'error', `You don't have enough tokens to buy this ticket`);
 		}
 		else
 		{
@@ -223,7 +223,7 @@ class LotteryView extends React.Component
 		return (
 			<div className="lottery">
 				<div className="header d-flex z-depth-2">
-					{ this.props.context.ticketsByLottery[this.props.id] > 0 && <MDBBadge pill color="warning">{ this.props.context.ticketsByLottery[this.props.id] }</MDBBadge> }
+					{ this.props.context.ticketsByLottery[this.props.id] > 0 && <MDBBadge pill color="warning">{ this.props.context.ticketsByLottery[this.props.id] }/{ this.state.details.ticketCount.toString() }</MDBBadge> }
 					<MDBBtn color={color} disabled className="btn-sm col-2">{descr}</MDBBtn>
 					<div className="mx-auto">
 						<MDBTable small borderless className="mb-0">
