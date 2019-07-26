@@ -14,56 +14,80 @@ class Services extends React.Component
 	{
 		super(props);
 		this.state = {
-			emitter:          new EventEmitter(),
-			config:           baseConfig,
-			provider:         null,
-			walletAddr:       null,
-			ERC20Balance:     null,
-			ERC721Balance:    {},
-			ticketsByLottery: {},
-			chainId:          null,
-			lottery:          null,
-			token:            null,
-			getNetwork:       (chainId = this.state.chainId) => ({ chainId, ...this.state.config.networks[chainId] }),
+			emitter:    new EventEmitter(),
+			provider:   new ethers.providers.Web3Provider(window.ethereum),
+			config:     baseConfig,
+			getNetwork: (chainId = this.state.chainId) => ({ chainId, ...this.state.config.networks[chainId] }),
 		}
 	}
 
-	async componentDidMount()
+	componentDidMount()
 	{
-		await window.ethereum.enable();
-
-		const provider      = new ethers.providers.Web3Provider(window.web3.currentProvider);
-		const walletAddr    = await provider.getSigner().getAddress();
-		const ERC20Balance = null;
-		const chainId       = (await provider.ready).chainId;
-		const lottery       = new ethers.Contract(this.state.config.networks[chainId].lottery, LOTTERY.abi, provider.getSigner());
-		const token         = new ethers.Contract(await lottery.token(),                       RLC.abi,     provider.getSigner());
-		// Assert config.lotteryAddr[chainId] !== undefined
-
-		this.setState({
-			provider,
-			walletAddr,
-			ERC20Balance,
-			chainId,
-			lottery,
-			token,
+		window.ethereum.enable()
+		.then(() => {
+			this.setState({ chainId: window.ethereum.networkVersion });
+			this.start();
+			window.ethereum.on('networkChanged',  () => this.state.emitter.emit('Notify', 'info', 'Please refresh the page.', 'Network changed'));
+			window.ethereum.on('accountsChanged', this.start);
 		});
-
-		// Event subscribe
-		this.state.lottery.addListener(this.state.lottery.filters.NewLottery(null), this.onNewLottery);
-		this.state.token.addListener(this.state.token.filters.Transfer(null, this.state.walletAddress), this.onERC20Transfer);
-		this.state.token.addListener(this.state.token.filters.Transfer(this.state.walletAddress, null), this.onERC20Transfer);
-		this.state.lottery.addListener(this.state.lottery.filters.Transfer(this.state.walletAddress, null, null), this.onERC721Transfer);
-		this.state.lottery.addListener(this.state.lottery.filters.Transfer(null, this.state.walletAddress, null), this.onERC721Transfer);
-		// Notify - refresh
-		this.state.emitter.emit('Notify', 'success', 'Connection to the blockchain successfull');
-		this.onNewLottery();
-		this.onERC20Transfer();
-		this.onERC721Transfer();
+	}
+	componentWillUnmount()
+	{
+		this.stop();
 	}
 
-	async componentWillUnmount()
-	{
+
+	start = async () => {
+		if (!this.state.getNetwork().lottery)
+		{
+			this.setState({
+				chainId:          window.ethereum.networkVersion,
+				lottery:          null,
+				token:            null,
+				walletAddr:       null,
+				ERC20Balance:     null,
+				ERC721Balance:    {},
+				ticketsByLottery: {},
+			});
+
+			this.state.emitter.emit('Notify', 'error', 'Please switch to kovan.', 'Lottery unavailable on this network');
+		}
+		else
+		{
+			const lotteryAddr      = this.state.getNetwork().lottery;
+			const lottery          = new ethers.Contract(lotteryAddr,           LOTTERY.abi, this.state.provider.getSigner());
+			const token            = new ethers.Contract(await lottery.token(), RLC.abi,     this.state.provider.getSigner());
+			const walletAddr       = window.ethereum.selectedAddress;
+			const ERC20Balance     = null;
+			const ERC721Balance    = {};
+			const ticketsByLottery = {};
+
+			this.setState({
+				chainId: window.ethereum.networkVersion,
+				lottery,
+				token,
+				walletAddr,
+				ERC20Balance,
+				ERC721Balance,
+				ticketsByLottery,
+			});
+
+			// Event subscribe
+			this.state.lottery.addListener(this.state.lottery.filters.NewLottery(null), this.onNewLottery);
+			this.state.token.addListener(this.state.token.filters.Transfer(null, this.state.walletAddress), this.onERC20Transfer);
+			this.state.token.addListener(this.state.token.filters.Transfer(this.state.walletAddress, null), this.onERC20Transfer);
+			this.state.lottery.addListener(this.state.lottery.filters.Transfer(this.state.walletAddress, null, null), this.onERC721Transfer);
+			this.state.lottery.addListener(this.state.lottery.filters.Transfer(null, this.state.walletAddress, null), this.onERC721Transfer);
+			// Notify - refresh
+			this.onNewLottery();
+			this.onERC20Transfer();
+			this.onERC721Transfer();
+
+			this.state.emitter.emit('Notify', 'success', 'Connection successfull');
+		}
+	}
+
+	stop = async () => {
 		this.state.lottery.removeListener(this.state.lottery.filters.NewLottery(null), this.onNewLottery);
 		this.state.token.removeListener(this.state.token.filters.Transfer(null, this.state.walletAddress), this.onERC20Transfer);
 		this.state.token.removeListener(this.state.token.filters.Transfer(this.state.walletAddress, null), this.onERC20Transfer);
