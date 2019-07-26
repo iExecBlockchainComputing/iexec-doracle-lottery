@@ -1,11 +1,11 @@
 import React from "react";
-import { MDBBadge, MDBBtn, MDBIcon, MDBTable, MDBTableBody } from 'mdbreact';
+import { MDBBadge, MDBBtn, MDBIcon, MDBTable, MDBTableBody, MDBTooltip } from 'mdbreact';
 
 import { ethers } from 'ethers';
 import iexec from 'iexec';
 
 import LotteryViewDetails from './LotteryViewDetails';
-import { rlcFormat } from '../utils';
+import { rlcFormat, durationFormat } from '../utils';
 
 // 0 → status;
 // 1 → oracleCall;
@@ -84,7 +84,7 @@ class LotteryView extends React.Component
 	}
 
 	buyTicket = (lotteryID) => () => {
-		if (Number(this.props.context.walletBalance) < Number(this.state.details[2]))
+		if (Number(this.props.context.ERC20Balance) < Number(this.state.details[2]))
 		{
 			this.props.context.emitter.emit('Notify', 'error', `You don't have enough tokens to buy this ticket`);
 		}
@@ -105,7 +105,8 @@ class LotteryView extends React.Component
 
 	getAppOrder = () => {
 		return new Promise((resolve, reject) => {
-			iexec.orderbook.fetchAppOrderbook(this.props.context.chainId, this.props.context.config.match.app)
+			const network = this.props.context.getNetwork();
+			iexec.orderbook.fetchAppOrderbook(network.chainId, network.app)
 			.then(orderbook => {
 				resolve(
 					orderbook
@@ -122,9 +123,10 @@ class LotteryView extends React.Component
 
 	getDatasetOrder = () => {
 		return new Promise((resolve, reject) => {
-			if (this.props.context.config.match.dataset)
+			const network = this.props.context.getNetwork();
+			if (network.dataset)
 			{
-				iexec.orderbook.fetchDatasetOrderbook(this.props.context.chainId, this.props.context.config.match.dataset)
+				iexec.orderbook.fetchDatasetOrderbook(network.chainId, network.dataset)
 				.then(orderbook => {
 					resolve(
 						orderbook
@@ -146,13 +148,14 @@ class LotteryView extends React.Component
 
 	getWorkerpoolOrder = () => {
 		return new Promise((resolve, reject) => {
-			Promise.all(this.props.context.config.match.categories.map(cat => iexec.orderbook.fetchWorkerpoolOrderbook(this.props.context.chainId, cat.toString(), {})))
+			const network = this.props.context.getNetwork();
+			Promise.all(this.props.context.config.match.categories.map(cat => iexec.orderbook.fetchWorkerpoolOrderbook(network.chainId, cat.toString(), {})))
 			.then(orderbooks => {
 				resolve(
 					[]
 					.concat(...orderbooks.map(e => e.workerpoolOrders))
 					.filter(e => e.status === 'open')
-					.filter(e => !this.props.context.config.match.workerpool || e.order.workerpool === this.props.context.config.match.workerpool)
+					.filter(e => !network.workerpool || e.order.workerpool === network.workerpool)
 					// .filter(e => e.order.tag == )
 					.sort((e1, e2) => e1.order.workerpoolprice - e2.order.workerpoolprice)[0]
 					.order
@@ -203,7 +206,7 @@ class LotteryView extends React.Component
 	timer = () => {
 		this.setState({
 			remainingTime:    new Date(Number(this.state.details.crowdsaleDeadline) * 1000 - Date.now()),
-			remainingTickets: Number(this.state.details.ticketMaxCount - this.state.details.ticketCount),
+			remainingTickets: this.state.details.ticketMaxCount.sub(this.state.details.ticketCount),
 			rolling:          this.state.details.oracleCall !== ethers.constants.HashZero,
 		});
 	}
@@ -213,18 +216,19 @@ class LotteryView extends React.Component
 		if (!this.state.details) return null;
 
 		let code, descr, color;
-		if      (this.state.details.status === 1 && this.state.remainingTime > 0 && this.state.remainingTickets >  0) { code = +1; descr = "Active";   color = "success"; }
-		else if (this.state.details.status === 1 && this.state.remainingTime > 0 && this.state.remainingTickets <= 0) { code = +2; descr = "Active";   color = "success"; }
-		else if (this.state.details.status === 1 && this.state.remainingTime < 0 && !this.state.rolling             ) { code = +3; descr = "Ready";    color = "info";    }
-		else if (this.state.details.status === 1 && this.state.remainingTime < 0 &&  this.state.rolling             ) { code = +4; descr = "Rolling";  color = "warning"; }
-		else if (this.state.details.status === 2                                                                    ) { code = +5; descr = "Finished"; color = "light";   }
-		else                                                                                                          { code = -1; descr = "Error";    color = "danger";  }
+		if      (this.state.details.status === 1 && this.state.remainingTime > 0 && this.state.remainingTickets.gt(0)   ) { code = +1; descr = "Active";   color = "success"; }
+		else if (this.state.details.status === 1 && this.state.remainingTime > 0 && this.state.remainingTickets.eq(0)   ) { code = +2; descr = "Active";   color = "success"; }
+		else if (this.state.details.status === 1 && this.state.remainingTime < 0 && this.state.details.ticketCount.eq(0)) { return null;                                      } // Hidden
+		else if (this.state.details.status === 1 && this.state.remainingTime < 0 && !this.state.rolling                 ) { code = +3; descr = "Ready";    color = "info";    }
+		else if (this.state.details.status === 1 && this.state.remainingTime < 0 &&  this.state.rolling                 ) { code = +4; descr = "Rolling";  color = "warning"; }
+		else if (this.state.details.status === 2                                                                        ) { code = +5; descr = "Finished"; color = "light";   }
+		else                                                                                                              { code = -1; descr = "Error";    color = "danger";  }
 
 		return (
 			<div className="lottery">
 				<div className="header d-flex z-depth-2">
 					{ this.props.context.ticketsByLottery[this.props.id] > 0 && <MDBBadge pill color="warning">{ this.props.context.ticketsByLottery[this.props.id] }/{ this.state.details.ticketCount.toString() }</MDBBadge> }
-					<MDBBtn color={color} disabled className="btn-sm col-2">{descr}</MDBBtn>
+					<MDBBtn color={color} disabled className="btn-sm col-2 z-depth-0">{descr}</MDBBtn>
 					<div className="mx-auto">
 						<MDBTable small borderless className="mb-0">
 							<MDBTableBody>
@@ -236,9 +240,32 @@ class LotteryView extends React.Component
 							</MDBTableBody>
 						</MDBTable>
 					</div>
-					{ code === 1 && <MDBBtn gradient="blue"  className="btn-sm col-2" onClick={this.buyTicket(this.props.id)}>Buy ticket<MDBIcon icon="ticket-alt"           className="ml-2"/></MDBBtn> }
-					{ code === 3 && <MDBBtn gradient="peach" className="btn-sm col-2" onClick={this.rollDice(this.props.id)} >Roll dice <MDBIcon icon="dice"                 className="ml-2"/></MDBBtn> }
-					{ code === 4 && <MDBBtn gradient="peach" className="btn-sm col-2" onClick={this.claim(this.props.id)}    >Claim     <MDBIcon icon="exclamation-triangle" className="ml-2"/></MDBBtn> }
+					{
+						code === 1 &&
+						<MDBTooltip placement="top">
+							<MDBBtn gradient="blue" className="btn-sm col-2 z-depth-0" onClick={this.buyTicket(this.props.id)}>
+								Buy ticket
+								<MDBIcon icon="ticket-alt" className="ml-2"/>
+							</MDBBtn>
+							<div>
+								{ durationFormat(Number(this.state.remainingTime)) } remaining
+							</div>
+						</MDBTooltip>
+					}
+					{
+						code === 3 &&
+						<MDBBtn gradient="peach" className="btn-sm col-2 z-depth-0" onClick={this.rollDice(this.props.id)} >
+							Roll dice
+							<MDBIcon icon="dice" className="ml-2"/>
+						</MDBBtn>
+					}
+					{
+						code === 4 &&
+						<MDBBtn gradient="peach" className="btn-sm col-2 z-depth-0" onClick={this.claim(this.props.id)}    >
+							Claim
+							<MDBIcon icon="exclamation-triangle" className="ml-2"/>
+						</MDBBtn>
+					}
 					{ ![1,3,4].includes(code) && <MDBBtn className="btn-sm col-2 invisible"/> }
 				</div>
 				<LotteryViewDetails id={this.props.id} details={this.state.details}/>

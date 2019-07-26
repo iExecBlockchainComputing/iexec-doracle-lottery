@@ -14,16 +14,17 @@ class Services extends React.Component
 	{
 		super(props);
 		this.state = {
-			config:           baseConfig,
 			emitter:          new EventEmitter(),
+			config:           baseConfig,
 			provider:         null,
 			walletAddr:       null,
-			walletBalance:    null,
-			walletNFTBalance: {},
+			ERC20Balance:     null,
+			ERC721Balance:    {},
 			ticketsByLottery: {},
 			chainId:          null,
 			lottery:          null,
 			token:            null,
+			getNetwork:       (chainId = this.state.chainId) => ({ chainId, ...this.state.config.networks[chainId] }),
 		}
 	}
 
@@ -33,16 +34,16 @@ class Services extends React.Component
 
 		const provider      = new ethers.providers.Web3Provider(window.web3.currentProvider);
 		const walletAddr    = await provider.getSigner().getAddress();
-		const walletBalance = null;
+		const ERC20Balance = null;
 		const chainId       = (await provider.ready).chainId;
-		const lottery       = new ethers.Contract(this.state.config.lotteryAddr[chainId], LOTTERY.abi, provider.getSigner());
-		const token         = new ethers.Contract(await lottery.token(),                  RLC.abi,     provider.getSigner());
+		const lottery       = new ethers.Contract(this.state.config.networks[chainId].lottery, LOTTERY.abi, provider.getSigner());
+		const token         = new ethers.Contract(await lottery.token(),                       RLC.abi,     provider.getSigner());
 		// Assert config.lotteryAddr[chainId] !== undefined
 
 		this.setState({
 			provider,
 			walletAddr,
-			walletBalance,
+			ERC20Balance,
 			chainId,
 			lottery,
 			token,
@@ -50,71 +51,71 @@ class Services extends React.Component
 
 		// Event subscribe
 		this.state.lottery.addListener(this.state.lottery.filters.NewLottery(null), this.onNewLottery);
-		this.state.token.addListener(this.state.token.filters.Transfer(null, this.state.walletAddress), this.onTokenTransfer);
-		this.state.token.addListener(this.state.token.filters.Transfer(this.state.walletAddress, null), this.onTokenTransfer);
-		this.state.lottery.addListener(this.state.lottery.filters.Transfer(this.state.walletAddress, null, null), this.onNFTTransfer);
-		this.state.lottery.addListener(this.state.lottery.filters.Transfer(null, this.state.walletAddress, null), this.onNFTTransfer);
+		this.state.token.addListener(this.state.token.filters.Transfer(null, this.state.walletAddress), this.onERC20Transfer);
+		this.state.token.addListener(this.state.token.filters.Transfer(this.state.walletAddress, null), this.onERC20Transfer);
+		this.state.lottery.addListener(this.state.lottery.filters.Transfer(this.state.walletAddress, null, null), this.onERC721Transfer);
+		this.state.lottery.addListener(this.state.lottery.filters.Transfer(null, this.state.walletAddress, null), this.onERC721Transfer);
 		// Notify - refresh
-		this.state.emitter.emit('Notify', 'success', 'connection to the blockchain successfull');
+		this.state.emitter.emit('Notify', 'success', 'Connection to the blockchain successfull');
 		this.onNewLottery();
-		this.onTokenTransfer();
-		this.onNFTTransfer();
+		this.onERC20Transfer();
+		this.onERC721Transfer();
 	}
 
 	async componentWillUnmount()
 	{
 		this.state.lottery.removeListener(this.state.lottery.filters.NewLottery(null), this.onNewLottery);
-		this.state.token.removeListener(this.state.token.filters.Transfer(null, this.state.walletAddress), this.onTokenTransfer);
-		this.state.token.removeListener(this.state.token.filters.Transfer(this.state.walletAddress, null), this.onTokenTransfer);
-		this.state.lottery.removeListener(this.state.lottery.filters.Transfer(this.state.walletAddress, null, null), this.onNFTTransfer);
-		this.state.lottery.removeListener(this.state.lottery.filters.Transfer(null, this.state.walletAddress, null), this.onNFTTransfer);
+		this.state.token.removeListener(this.state.token.filters.Transfer(null, this.state.walletAddress), this.onERC20Transfer);
+		this.state.token.removeListener(this.state.token.filters.Transfer(this.state.walletAddress, null), this.onERC20Transfer);
+		this.state.lottery.removeListener(this.state.lottery.filters.Transfer(this.state.walletAddress, null, null), this.onERC721Transfer);
+		this.state.lottery.removeListener(this.state.lottery.filters.Transfer(null, this.state.walletAddress, null), this.onERC721Transfer);
 	}
 
 	onNewLottery = (lotteryid) => {
 		this.state.emitter.emit('NewLottery', lotteryid)
 	}
 
-	onTokenTransfer = (from, to, value) => {
+	onERC20Transfer = (from, to, value) => {
 		this.state.token.balanceOf(this.state.walletAddr)
-		.then(walletBalance => {
-			this.setState({ walletBalance });
+		.then(ERC20Balance => {
+			this.setState({ ERC20Balance });
 		});
 	}
 
-	onNFTTransfer = (from, to, tokenID) => {
+	onERC721Transfer = (from, to, tokenID) => {
 		if (tokenID && from === this.state.walletAddress)
 		{
-			if (this.state.walletNFTBalance[tokenID])
+			if (this.state.ERC721Balance[tokenID])
 			{
-				const lotteryID = this.state.walletNFTBalance[tokenID].lotteryID;
-				delete this.state.walletNFTBalance[tokenID];
-				this.state.ticketsByLottery[lotteryID] = Object.values(this.state.walletNFTBalance).filter(e => e.lotteryID.toString() === lotteryID.toString()).length;
+				const lotteryID = this.state.ERC721Balance[tokenID].lotteryID;
+				delete this.state.ERC721Balance[tokenID];
+				this.state.ticketsByLottery[lotteryID] = Object.values(this.state.ERC721Balance).filter(e => e.lotteryID.toString() === lotteryID.toString()).length;
 			}
 		}
 		else if (tokenID && to === this.state.walletAddress)
 		{
-			if (!this.state.walletNFTBalance[tokenID])
+			if (!this.state.ERC721Balance[tokenID])
 			{
 				this.state.lottery
 				.viewTicket(tokenID)
 				.then(ticketDetails => {
 					const lotteryID = ticketDetails.lotteryID;
-					this.state.walletNFTBalance[tokenID] = ticketDetails;
-					this.state.ticketsByLottery[lotteryID] = Object.values(this.state.walletNFTBalance).filter(e => e.lotteryID.toString() === lotteryID.toString()).length;
+					this.state.ERC721Balance[tokenID] = ticketDetails;
+					this.state.ticketsByLottery[lotteryID] = Object.values(this.state.ERC721Balance).filter(e => e.lotteryID.toString() === lotteryID.toString()).length;
 				});
 			}
 		}
 		else
 		{
 			this.state.lottery.balanceOf(this.state.walletAddr)
-			.then(walletBalanceNFT => {
+			.then(ERC20BalanceNFT => {
 				Promise.all(
-					[...Array(Number(walletBalanceNFT)).keys()]
+					[...Array(Number(ERC20BalanceNFT)).keys()]
 					.map(index => this.state.lottery.tokenOfOwnerByIndex(this.state.walletAddr, index))
 				)
 				.then(tokenIDs => {
 					tokenIDs.forEach(tokenID => {
-						this.onNFTTransfer(null, this.state.walletAddress, tokenID);
+						this.onERC721Transfer(null, this.state.walletAddress, tokenID);
 					})
 				})
 			});

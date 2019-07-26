@@ -16,7 +16,7 @@ class Nav extends React.Component
 				</MDBNavbarNav>
 				<MDBNavbarNav right>
 					<MDBNavItem text="white">
-						{ this.props.context.walletBalance && `Balance: ${rlcFormat(this.props.context.walletBalance)}` }
+						{ this.props.context.ERC20Balance && `Balance: ${rlcFormat(this.props.context.ERC20Balance)}` }
 					</MDBNavItem>
 				</MDBNavbarNav>
 			</MDBNavbar>
