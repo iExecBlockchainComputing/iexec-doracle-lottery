@@ -21,76 +21,93 @@ class LotteryView extends React.Component
 
 	componentDidMount()
 	{
-		this.refresh().then(() => {
+		this.fetch().then(() => {
 			this.timer();
 			this.setState({ clock: setInterval(this.timer, 1000) });
 		});
-
-		this.props.context.lottery.addListener(this.props.context.lottery.filters.NewParticipant(this.props.id, null      ), this.onNewParticipant);
-		this.props.context.lottery.addListener(this.props.context.lottery.filters.NewRoll       (this.props.id, null      ), this.onNewRoll       );
-		this.props.context.lottery.addListener(this.props.context.lottery.filters.Reward        (this.props.id, null, null), this.onReward        );
-		this.props.context.lottery.addListener(this.props.context.lottery.filters.Faillure      (this.props.id            ), this.onFaillure      );
-		this.props.context.lottery.addListener(this.props.context.lottery.filters.Claim         (this.props.id            ), this.onClaim         );
+		this.subscriptionNewParticipant = this.props.context.emitter.addListener('NewParticipant', this.onNewParticipant);
+		this.subscriptionNewRoll        = this.props.context.emitter.addListener('NewRoll',        this.onNewRoll       );
+		this.subscriptionReward         = this.props.context.emitter.addListener('Reward',         this.onReward        );
+		this.subscriptionFaillure       = this.props.context.emitter.addListener('Faillure',       this.onFaillure      );
+		this.subscriptionClaim          = this.props.context.emitter.addListener('Claim',          this.onClaim         );
 	}
 
 	componentWillUnmount()
 	{
 		clearInterval(this.state.clock);
-		this.props.context.lottery.removeListener(this.props.context.lottery.filters.NewParticipant(this.props.id, null      ), this.onNewParticipant);
-		this.props.context.lottery.removeListener(this.props.context.lottery.filters.NewRoll       (this.props.id, null      ), this.onNewRoll       );
-		this.props.context.lottery.removeListener(this.props.context.lottery.filters.Reward        (this.props.id, null, null), this.onReward        );
-		this.props.context.lottery.removeListener(this.props.context.lottery.filters.Faillure      (this.props.id            ), this.onFaillure      );
-		this.props.context.lottery.removeListener(this.props.context.lottery.filters.Claim         (this.props.id            ), this.onClaim         );
+		this.subscriptionNewParticipant.remove();
+		this.subscriptionNewRoll.remove();
+		this.subscriptionReward.remove();
+		this.subscriptionFaillure.remove();
+		this.subscriptionClaim.remove();
 	}
 
-	refresh = () =>
-	{
-		return new Promise((resolve, reject) => {
-			this.props.context.lottery.viewLottery(this.props.id)
-			.then(details => {
-				this.setState({ details: details });
-				resolve(null);
-			})
-			.catch(reject);
+	fetch = () => new Promise((resolve, reject) => {
+		this.props.context.contracts.lottery.viewLottery(this.props.id).then(metadata => {
+			this.setState({ metadata });
+			resolve();
+		});
+	})
+
+	timer = () => {
+		this.setState({
+			remainingTime:    new Date(this.state.metadata.crowdsaleDeadline.toNumber() * 1000 - Date.now()),
+			remainingTickets: this.state.metadata.ticketMaxCount.sub(this.state.metadata.ticketCount),
+			rolling:          this.state.metadata.oracleCall !== ethers.constants.HashZero,
 		});
 	}
 
 	onNewParticipant = (lotteryid, ticketid) => {
-		this.refresh();
+		if (lotteryid.eq(this.props.id))
+		{
+			this.fetch();
+		}
 	}
 
 	onNewRoll = (lotteryid, taskid) => {
-		this.refresh();
+		if (lotteryid.eq(this.props.id))
+		{
+			this.fetch();
+		}
 	}
 
 	onReward = (lotteryid, winner, value) => {
-		if (winner === this.props.context.walletAddr)
+		if (lotteryid.eq(this.props.id))
 		{
-			this.props.context.emitter.emit('Notify', 'success', `You won ${rlcFormat(value)}`, `You are a winner`);
+		// if (winner === this.props.context.walletAddr)
+		// {
+		// 	this.props.context.emitter.emit('Notify', 'success', `You won ${rlcFormat(value)}`, `You are a winner`);
+		// }
+		// else
+		// {
+		// 	this.props.context.emitter.emit('Notify', 'error', `${winner} won ${rlcFormat(value)}`, `Better luck next time`);
+		// }
+			this.fetch();
 		}
-		else
-		{
-			this.props.context.emitter.emit('Notify', 'error', `${winner} won ${rlcFormat(value)}`, `Better luck next time`);
-		}
-		this.refresh();
 	}
 
 	onFaillure = (lotteryid) => {
-		this.refresh();
+		if (lotteryid.eq(this.props.id))
+		{
+			this.fetch();
+		}
 	}
 
 	onClaim = (lotteryid) => {
-		this.refresh();
+		if (lotteryid.eq(this.props.id))
+		{
+			this.fetch();
+		}
 	}
 
 	buyTicket = (lotteryID) => () => {
-		if (Number(this.props.context.ERC20Balance) < Number(this.state.details[2]))
+		if (this.props.context.balance.lt(this.state.metadata[2]))
 		{
 			this.props.context.emitter.emit('Notify', 'error', `You don't have enough tokens to buy this ticket`);
 		}
 		else
 		{
-			this.props.context.token.approveAndCall(this.props.context.lottery.address, this.state.details[2], ethers.utils.defaultAbiCoder.encode(["uint256"], [ lotteryID ]))
+			this.props.context.contracts.token.approveAndCall(this.props.context.contracts.lottery.address, this.state.metadata[2], ethers.utils.defaultAbiCoder.encode(["uint256"], [ lotteryID ]))
 			.then(txPromise => {
 				txPromise
 				.wait()
@@ -167,75 +184,68 @@ class LotteryView extends React.Component
 
 	rollDice = (lotteryID) => () =>
 	{
-		Promise.all([
-			this.getAppOrder(),
-			this.getDatasetOrder(),
-			this.getWorkerpoolOrder(),
-		])
-		.then(orders => {
-			this.props.context.lottery
-			.roll(lotteryID, ...orders)
-			.then(txPromise => {
-				txPromise
-				.wait()
-				.then(tx => {
-					this.props.context.emitter.emit('Notify', 'warning', 'Dices are rolling');
-				})
-				.catch(console.error);
-			})
-			.catch(console.error);
-		})
-		.catch(console.error);
+		// Promise.all([
+		// 	this.getAppOrder(),
+		// 	this.getDatasetOrder(),
+		// 	this.getWorkerpoolOrder(),
+		// ])
+		// .then(orders => {
+		// 	this.props.context.lottery
+		// 	.roll(lotteryID, ...orders)
+		// 	.then(txPromise => {
+		// 		txPromise
+		// 		.wait()
+		// 		.then(tx => {
+		// 			this.props.context.emitter.emit('Notify', 'warning', 'Dices are rolling');
+		// 		})
+		// 		.catch(console.error);
+		// 	})
+		// 	.catch(console.error);
+		// })
+		// .catch(console.error);
 	}
 
 	claim = (lotteryID) => () =>
 	{
-		this.props.context.lottery
-		.claim(lotteryID)
-		.then(txPromise => {
-			txPromise
-			.wait()
-			.then(tx => {
-				this.props.context.emitter.emit('Notify', 'warning', 'Claim successfull');
-			})
-			.catch(console.error);
-		})
-		.catch(console.error);
-	}
-
-	timer = () => {
-		this.setState({
-			remainingTime:    new Date(Number(this.state.details.crowdsaleDeadline) * 1000 - Date.now()),
-			remainingTickets: this.state.details.ticketMaxCount.sub(this.state.details.ticketCount),
-			rolling:          this.state.details.oracleCall !== ethers.constants.HashZero,
-		});
+		// this.props.context.lottery
+		// .claim(lotteryID)
+		// .then(txPromise => {
+		// 	txPromise
+		// 	.wait()
+		// 	.then(tx => {
+		// 		this.props.context.emitter.emit('Notify', 'warning', 'Claim successfull');
+		// 	})
+		// 	.catch(console.error);
+		// })
+		// .catch(console.error);
 	}
 
 	render()
 	{
-		if (!this.state.details) return null;
+		if (!this.state.metadata) return null;
 
 		let code, descr, color;
-		if      (this.state.details.status === 1 && this.state.remainingTime > 0 && this.state.remainingTickets.gt(0)   ) { code = +1; descr = "Active";   color = "success"; }
-		else if (this.state.details.status === 1 && this.state.remainingTime > 0 && this.state.remainingTickets.eq(0)   ) { code = +2; descr = "Active";   color = "success"; }
-		else if (this.state.details.status === 1 && this.state.remainingTime < 0 && this.state.details.ticketCount.eq(0)) { return null;                                      } // Hidden
-		else if (this.state.details.status === 1 && this.state.remainingTime < 0 && !this.state.rolling                 ) { code = +3; descr = "Ready";    color = "info";    }
-		else if (this.state.details.status === 1 && this.state.remainingTime < 0 &&  this.state.rolling                 ) { code = +4; descr = "Rolling";  color = "warning"; }
-		else if (this.state.details.status === 2                                                                        ) { code = +5; descr = "Finished"; color = "light";   }
-		else                                                                                                              { code = -1; descr = "Error";    color = "danger";  }
+		if      (this.state.metadata.status === 1 && this.state.remainingTime > 0 && this.state.remainingTickets.gt(0)    ) { code = +1; descr = "Active";   color = "success"; }
+		else if (this.state.metadata.status === 1 && this.state.remainingTime > 0 && this.state.remainingTickets.eq(0)    ) { code = +2; descr = "Active";   color = "success"; }
+		else if (this.state.metadata.status === 1 && this.state.remainingTime < 0 && this.state.metadata.ticketCount.eq(0)) { return null;                                      } // Hidden
+		else if (this.state.metadata.status === 1 && this.state.remainingTime < 0 && !this.state.rolling                  ) { code = +3; descr = "Ready";    color = "info";    }
+		else if (this.state.metadata.status === 1 && this.state.remainingTime < 0 &&  this.state.rolling                  ) { code = +4; descr = "Rolling";  color = "warning"; }
+		else if (this.state.metadata.status === 2                                                                         ) { code = +5; descr = "Finished"; color = "light";   }
+		else                                                                                                                { code = -1; descr = "Error";    color = "danger";  }
 
+		const owned = Object.values(this.props.context.tickets).filter(e => e.lotteryID.eq(this.props.id)).length;
 		return (
 			<div className="lottery">
 				<div className="header d-flex z-depth-2">
-					{ this.props.context.ticketsByLottery[this.props.id] > 0 && <MDBBadge pill color="warning">{ this.props.context.ticketsByLottery[this.props.id] }/{ this.state.details.ticketCount.toString() }</MDBBadge> }
+				{ owned > 0 && <MDBBadge pill color="warning">{ owned }/{ this.state.metadata.ticketCount.toString() }</MDBBadge> }
 					<MDBBtn color={color} disabled className="btn-sm col-2 z-depth-0">{descr}</MDBBtn>
 					<div className="mx-auto">
 						<MDBTable small borderless className="mb-0">
 							<MDBTableBody>
 								<tr>
-									<td>{ `${rlcFormat(this.state.details.ticketPrice)}/ticket` }</td>
+									<td>{ `${rlcFormat(this.state.metadata.ticketPrice)}/ticket` }</td>
 									<td>-</td>
-									<td>{ `${this.state.details.ticketCount.toString()}/${this.state.details.ticketMaxCount.toString()} sold` }</td>
+									<td>{ `${this.state.metadata.ticketCount.toString()}/${this.state.metadata.ticketMaxCount.toString()} sold` }</td>
 								</tr>
 							</MDBTableBody>
 						</MDBTable>
@@ -268,7 +278,7 @@ class LotteryView extends React.Component
 					}
 					{ ![1,3,4].includes(code) && <MDBBtn className="btn-sm col-2 invisible"/> }
 				</div>
-				<LotteryViewDetails id={this.props.id} details={this.state.details}/>
+				<LotteryViewDetails id={this.props.id} details={this.state}/>
 			</div>
 		);
 	}

@@ -22,7 +22,7 @@ class LotteryAdd extends React.Component
 		if (ticketPrice <  0) { console.error("ticketsPrice must be >= 0"); return; }
 		if (duration    <= 0) { console.error("duration must be > 0"     ); return; }
 
-		this.props.context.lottery.createLottery(ticketPrice, ticketCount, duration)
+		this.props.context.contracts.lottery.createLottery(ticketPrice, ticketCount, duration)
 		.then(txPromise => {
 			txPromise
 			.wait()

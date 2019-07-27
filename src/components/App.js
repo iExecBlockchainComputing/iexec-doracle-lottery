@@ -1,30 +1,25 @@
 import React from "react";
 
-import Context       from '../context';
+import BlockchainProvider, { withBlockchain } from '../store/BlockchainProvider';
 
-import Services      from './Services';
 import Notifications from './Notifications';
 import Nav           from './Nav';
 import LotteryList   from './LotteryList';
-
 
 class App extends React.Component
 {
 	render()
 	{
+		const WrappedNotifications = withBlockchain(Notifications);
+		const WrappedNav           = withBlockchain(Nav);
+		const WrappedLotteryList   = withBlockchain(LotteryList);
+
 		return (
-			<Services>
-				<Context.Consumer>
-					{
-						context =>
-						<>
-							<Notifications context={context}/>
-							<Nav           context={context}/>
-							<LotteryList   context={context}/>
-						</>
-					}
-				</Context.Consumer>
-			</Services>
+			<BlockchainProvider>
+				<WrappedNotifications/>
+				<WrappedNav/>
+				<WrappedLotteryList/>
+			</BlockchainProvider>
 		);
 	}
 }

@@ -12,7 +12,7 @@ class LotteryList extends React.Component
 
 	componentDidMount()
 	{
-		this.subscription = this.props.context.emitter.addListener('NewLottery', this.refresh);
+		this.subscription = this.props.context.emitter.addListener('NewLottery', this.onNewLottery);
 	}
 
 	componentWillUnmount()
@@ -20,12 +20,19 @@ class LotteryList extends React.Component
 		this.subscription.remove();
 	}
 
-	refresh = (lotteryid) => {
-		this.props.context.lottery.countLottery()
-		.then(count => {
-			this.setState({ count: count });
-		})
-		.catch(console.error);
+	onNewLottery = (lotteryid) => {
+		if (lotteryid)
+		{
+			this.setState({ count: lotteryid.toNumber() + 1 });
+		}
+		else if (this.props.context.connected)
+		{
+			this.props.context.contracts.lottery.countLottery().then(count => this.setState({ count: count.toNumber() }));
+		}
+		else
+		{
+			this.setState({ count: 0 });
+		}
 	}
 
 	render()
@@ -33,7 +40,7 @@ class LotteryList extends React.Component
 		return (
 			<>
 			{
-				[ ...Array(Number(this.state.count)).keys() ]
+				[ ...Array(this.state.count).keys() ]
 				.reverse()
 				.map(i => <LotteryView key={i} id={i} context={this.props.context}/> )
 			}

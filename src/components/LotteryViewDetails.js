@@ -24,10 +24,10 @@ class LotteryViewDetails extends React.Component
 							LotteryID: { this.props.id }
 						</p>
 						<p>
-							Pot value: { rlcFormat(this.props.details.potValue) }
+							Pot value: { rlcFormat(this.props.details.metadata.potValue) }
 						</p>
 						<p>
-							Deadline: { (new Date(Number(this.props.details.crowdsaleDeadline) * 1000)).toISOString() }
+							Deadline: { (new Date(this.props.details.metadata.crowdsaleDeadline.toNumber() * 1000)).toISOString() }
 						</p>
 					</div>
 				</MDBCollapse>
