@@ -19,4 +19,4 @@ const durationFormat = (value) => {
 	else                  return `${seconds}s`;
 }
 
-export { rlcFormat, durationFormat };
+export { rlcFormat, durationFormat, strPadLeft};

@@ -7,6 +7,8 @@ module.exports = Object.freeze({
 			app:        "0xB43c71cb72A1EA1CAcF3F30F476155F48285F790",
 			dataset:    null,
 			workerpool: null,
+			explorer:   "https://explorer.iex.ec/kovan",
+			etherscan:  "https://kovan.etherscan.io",
 		},
 	},
 	match:

@@ -21,6 +21,7 @@ class BlockchainProvider extends React.Component
 			contracts:    {},
 			balance:      null,
 			tickets:      {},
+			ticketsCount: {},
 			// methods
 			getNetwork:   this.getNetwork,
 			getWallet:    this.getWallet,
@@ -31,14 +32,13 @@ class BlockchainProvider extends React.Component
 		}
 	}
 
-
 	componentDidMount()
 	{
 		window.ethereum.enable()
 		.then(() => {
 			this.start().then(() => {
-				window.ethereum.on('networkChanged',  this.restart);
-				window.ethereum.on('accountsChanged', this.restart);
+				window.ethereum.on('networkChanged',  this.onNetworkChanged);
+				window.ethereum.on('accountsChanged', this.onAccountsChanged);
 			});
 		});
 	}
@@ -56,25 +56,25 @@ class BlockchainProvider extends React.Component
 			const token       = new ethers.Contract(await lottery.token(), RLC.abi,     this.state.provider.getSigner());
 
 			this.setState({
-				connected: true,
-				contracts: { lottery, token },
-				balance:   null,
-				tickets:   {},
+				connected:    true,
+				contracts:    { lottery, token },
+				balance:      null,
+				tickets:      {},
+				ticketsCount: {},
 			});
 
 			this.state.contracts.token.addListener(this.state.contracts.token.filters.Transfer(null, this.state.getWallet()), this.onERC20Transfer);
 			this.state.contracts.token.addListener(this.state.contracts.token.filters.Transfer(this.state.getWallet(), null), this.onERC20Transfer);
 			this.state.contracts.lottery.addListener("Transfer",       this.onERC721Transfer);
-			this.state.contracts.lottery.addListener("NewLottery",     this.onNewLottery);
+			this.state.contracts.lottery.addListener("NewLottery",     this.onNewLottery    );
 			this.state.contracts.lottery.addListener("NewParticipant", this.onNewParticipant);
-			this.state.contracts.lottery.addListener("NewRoll",        this.onNewRoll);
-			this.state.contracts.lottery.addListener("Reward",         this.onReward);
-			this.state.contracts.lottery.addListener("Faillure",       this.onFaillure);
-			this.state.contracts.lottery.addListener("Claim",          this.onClaim);
+			this.state.contracts.lottery.addListener("NewRoll",        this.onNewRoll       );
+			this.state.contracts.lottery.addListener("Reward",         this.onReward        );
+			this.state.contracts.lottery.addListener("Faillure",       this.onFaillure      );
+			this.state.contracts.lottery.addListener("Claim",          this.onClaim         );
 
 			// initialize
 			this.fetchBalance();
-			this.fetchAllTickets();
 			this.onNewLottery(null);
 
 			// notify
@@ -83,10 +83,11 @@ class BlockchainProvider extends React.Component
 		catch
 		{
 			this.setState({
-				connected: false,
-				contracts: {},
-				balance:   null,
-				tickets:   {},
+				connected:    false,
+				contracts:    {},
+				balance:      null,
+				tickets:      {},
+				ticketsCount: {},
 			});
 
 			// reset
@@ -104,12 +105,12 @@ class BlockchainProvider extends React.Component
 			this.state.contracts.token.removeListener(this.state.contracts.token.filters.Transfer(null, this.state.getWallet()), this.onERC20Transfer);
 			this.state.contracts.token.removeListener(this.state.contracts.token.filters.Transfer(this.state.getWallet(), null), this.onERC20Transfer);
 			this.state.contracts.lottery.removeListener("Transfer",       this.onERC721Transfer);
-			this.state.contracts.lottery.removeListener("NewLottery",     this.onNewLottery);
+			this.state.contracts.lottery.removeListener("NewLottery",     this.onNewLottery    );
 			this.state.contracts.lottery.removeListener("NewParticipant", this.onNewParticipant);
-			this.state.contracts.lottery.removeListener("NewRoll",        this.onNewRoll);
-			this.state.contracts.lottery.removeListener("Reward",         this.onReward);
-			this.state.contracts.lottery.removeListener("Faillure",       this.onFaillure);
-			this.state.contracts.lottery.removeListener("Claim",          this.onClaim);
+			this.state.contracts.lottery.removeListener("NewRoll",        this.onNewRoll       );
+			this.state.contracts.lottery.removeListener("Reward",         this.onReward        );
+			this.state.contracts.lottery.removeListener("Faillure",       this.onFaillure      );
+			this.state.contracts.lottery.removeListener("Claim",          this.onClaim         );
 		}
 		resolve();
 	})
@@ -124,14 +125,24 @@ class BlockchainProvider extends React.Component
 		.catch(reject);
 	})
 
-	onNewLottery     = (lotteryid               ) => { this.state.emitter.emit('NewLottery',     lotteryid); }
-	onNewParticipant = (lotteryid, ticketid     ) => { this.state.emitter.emit('NewParticipant', lotteryid); }
-	onNewRoll        = (lotteryid, taskid       ) => { this.state.emitter.emit('NewRoll',        lotteryid); }
-	onReward         = (lotteryid, winner, value) => { this.state.emitter.emit('Reward',         lotteryid); }
-	onFaillure       = (lotteryid               ) => { this.state.emitter.emit('Faillure',       lotteryid); }
-	onClaim          = (lotteryid               ) => { this.state.emitter.emit('Claim',          lotteryid); }
-	onERC20Transfer  = (from, to, value         ) => { this.fetchBalance();                                  }
-	onERC721Transfer = (from, to, tokenID       ) => { this.fetchTicket(tokenID);                            }
+	onNetworkChanged = () => {
+		this.state.emitter.emit('NetworkChanged');
+		this.restart();
+	}
+
+	onAccountsChanged = () => {
+		this.state.emitter.emit('AccountsChanged');
+		this.fetchBalance();
+	}
+
+	onNewLottery     = (lotteryid               ) => { this.state.emitter.emit('NewLottery',     lotteryid               ); }
+	onNewParticipant = (lotteryid, ticketid     ) => { this.state.emitter.emit('NewParticipant', lotteryid, ticketid     ); }
+	onNewRoll        = (lotteryid, taskid       ) => { this.state.emitter.emit('NewRoll',        lotteryid, taskid       ); }
+	onReward         = (lotteryid, winner, value) => { this.state.emitter.emit('Reward',         lotteryid, winner, value); }
+	onFaillure       = (lotteryid               ) => { this.state.emitter.emit('Faillure',       lotteryid               ); }
+	onClaim          = (lotteryid               ) => { this.state.emitter.emit('Claim',          lotteryid               ); }
+	onERC20Transfer  = (from, to, value         ) => { this.fetchBalance();                                                 }
+	onERC721Transfer = (from, to, tokenID       ) => { this.fetchTicket(tokenID);                                           }
 
 	getNetwork = (chainId = window.ethereum.networkVersion) => {
 		return { chainId, ...this.state.config.networks[chainId] };
@@ -145,10 +156,8 @@ class BlockchainProvider extends React.Component
 		return this.state.balance;
 	}
 
-	fetchBalance = async () => {
-		this.setState({
-			balance: await this.state.contracts.token.balanceOf(this.getWallet()),
-		});
+	fetchBalance = () => {
+		this.state.contracts.token.balanceOf(this.getWallet()).then(balance => { this.setState({ balance }); });
 	}
 
 	getTicket = (id) => {
@@ -156,54 +165,11 @@ class BlockchainProvider extends React.Component
 	}
 
 	fetchTicket = async (id) => {
-		const owner = await this.state.contracts.lottery.ownerOf(id);
-
-		if (owner === this.getWallet())
-		{
-			this.state.tickets[id] = await this.state.contracts.lottery.viewTicket(id);
-		}
-		else
-		{
-			delete this.state.tickets[id];
-		}
+		const owner   = await this.state.contracts.lottery.ownerOf(id);
+		const details = await this.state.contracts.lottery.viewTicket(id);
+		this.state.tickets[id] = { owner, details };
+		this.state.emitter.emit('TicketFetched', id, owner, details.lotteryID);
 	}
-
-	fetchAllTickets = (id) => {
-		this.state.contracts.lottery.balanceOf(this.getWallet())
-		.then(count => {
-			Promise.all(
-				[...Array(count.toNumber()).keys()]
-				.map(index => this.state.contracts.lottery.tokenOfOwnerByIndex(this.getWallet(), index))
-			)
-			.then(tokenIDs => tokenIDs.forEach(this.fetchTicket));
-		});
-	}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 	render() {
 		return (

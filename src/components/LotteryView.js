@@ -4,16 +4,8 @@ import { MDBBadge, MDBBtn, MDBIcon, MDBTable, MDBTableBody, MDBTooltip } from 'm
 import { ethers } from 'ethers';
 import iexec from 'iexec';
 
-import LotteryViewDetails from './LotteryViewDetails';
+import LotteryViewModal from './LotteryViewModal';
 import { rlcFormat, durationFormat } from '../utils';
-
-// 0 → status;
-// 1 → oracleCall;
-// 2 → ticketPrice;
-// 3 → ticketCount;
-// 4 → ticketMaxCount;
-// 5 → potValue;
-// 6 → crowdsaleDeadline;
 
 class LotteryView extends React.Component
 {
@@ -21,15 +13,19 @@ class LotteryView extends React.Component
 
 	componentDidMount()
 	{
+		this.subscriptionNewParticipant  = this.props.context.emitter.addListener('NewParticipant',  this.onNewParticipant );
+		this.subscriptionNewRoll         = this.props.context.emitter.addListener('NewRoll',         this.onNewRoll        );
+		this.subscriptionReward          = this.props.context.emitter.addListener('Reward',          this.onReward         );
+		this.subscriptionFaillure        = this.props.context.emitter.addListener('Faillure',        this.onFaillure       );
+		this.subscriptionClaim           = this.props.context.emitter.addListener('Claim',           this.onClaim          );
+		this.subscriptionTicketFetched   = this.props.context.emitter.addListener('TicketFetched',   this.onTicketFetched  );
+		this.subscriptionAccountsChanged = this.props.context.emitter.addListener('AccountsChanged', this.onAccountsChanged);
+
 		this.fetch().then(() => {
+			this.state.ticketIDs.forEach(this.props.context.fetchTicket);
 			this.timer();
 			this.setState({ clock: setInterval(this.timer, 1000) });
 		});
-		this.subscriptionNewParticipant = this.props.context.emitter.addListener('NewParticipant', this.onNewParticipant);
-		this.subscriptionNewRoll        = this.props.context.emitter.addListener('NewRoll',        this.onNewRoll       );
-		this.subscriptionReward         = this.props.context.emitter.addListener('Reward',         this.onReward        );
-		this.subscriptionFaillure       = this.props.context.emitter.addListener('Faillure',       this.onFaillure      );
-		this.subscriptionClaim          = this.props.context.emitter.addListener('Claim',          this.onClaim         );
 	}
 
 	componentWillUnmount()
@@ -40,21 +36,24 @@ class LotteryView extends React.Component
 		this.subscriptionReward.remove();
 		this.subscriptionFaillure.remove();
 		this.subscriptionClaim.remove();
+		this.subscriptionTicketFetched.remove();
+		this.subscriptionAccountsChanged.remove();
 	}
 
 	fetch = () => new Promise((resolve, reject) => {
 		this.props.context.contracts.lottery.viewLottery(this.props.id).then(metadata => {
-			this.setState({ metadata });
+			this.setState({
+				metadata,
+				ticketIDs:        [ ...Array(metadata.ticketCount.toNumber()).keys() ].map(i => ethers.utils.bigNumberify(ethers.utils.solidityKeccak256(["uint256","uint256"],[this.props.id, i]))),
+				remainingTickets: metadata.ticketMaxCount.sub(metadata.ticketCount),
+				rolling:          metadata.oracleCall !== ethers.constants.HashZero,
+			});
 			resolve();
 		});
 	})
 
 	timer = () => {
-		this.setState({
-			remainingTime:    new Date(this.state.metadata.crowdsaleDeadline.toNumber() * 1000 - Date.now()),
-			remainingTickets: this.state.metadata.ticketMaxCount.sub(this.state.metadata.ticketCount),
-			rolling:          this.state.metadata.oracleCall !== ethers.constants.HashZero,
-		});
+		this.setState({ remainingTime: new Date(this.state.metadata.crowdsaleDeadline.toNumber() * 1000 - Date.now()) });
 	}
 
 	onNewParticipant = (lotteryid, ticketid) => {
@@ -74,14 +73,14 @@ class LotteryView extends React.Component
 	onReward = (lotteryid, winner, value) => {
 		if (lotteryid.eq(this.props.id))
 		{
-		// if (winner === this.props.context.walletAddr)
-		// {
-		// 	this.props.context.emitter.emit('Notify', 'success', `You won ${rlcFormat(value)}`, `You are a winner`);
-		// }
-		// else
-		// {
-		// 	this.props.context.emitter.emit('Notify', 'error', `${winner} won ${rlcFormat(value)}`, `Better luck next time`);
-		// }
+			if (winner === this.props.context.getWallet())
+			{
+				this.props.context.emitter.emit('Notify', 'success', `You won ${rlcFormat(value)}`, `You are a winner`);
+			}
+			else
+			{
+				this.props.context.emitter.emit('Notify', 'error', `${winner} won ${rlcFormat(value)}`, `Better luck next time`);
+			}
 			this.fetch();
 		}
 	}
@@ -98,6 +97,19 @@ class LotteryView extends React.Component
 		{
 			this.fetch();
 		}
+	}
+
+	onTicketFetched = (ticketid, owner, lotteryid) => {
+		if (lotteryid.eq(this.props.id))
+		{
+			this.onAccountsChanged();
+		}
+	}
+
+	onAccountsChanged = () => {
+		this.setState({
+			owned: this.state.ticketIDs.filter(id => this.props.context.getTicket(id) && this.props.context.getTicket(id).owner === this.props.context.getWallet()).length,
+		});
 	}
 
 	buyTicket = (lotteryID) => () => {
@@ -184,40 +196,40 @@ class LotteryView extends React.Component
 
 	rollDice = (lotteryID) => () =>
 	{
-		// Promise.all([
-		// 	this.getAppOrder(),
-		// 	this.getDatasetOrder(),
-		// 	this.getWorkerpoolOrder(),
-		// ])
-		// .then(orders => {
-		// 	this.props.context.lottery
-		// 	.roll(lotteryID, ...orders)
-		// 	.then(txPromise => {
-		// 		txPromise
-		// 		.wait()
-		// 		.then(tx => {
-		// 			this.props.context.emitter.emit('Notify', 'warning', 'Dices are rolling');
-		// 		})
-		// 		.catch(console.error);
-		// 	})
-		// 	.catch(console.error);
-		// })
-		// .catch(console.error);
+		Promise.all([
+			this.getAppOrder(),
+			this.getDatasetOrder(),
+			this.getWorkerpoolOrder(),
+		])
+		.then(orders => {
+			this.props.context.contracts.lottery
+			.roll(lotteryID, ...orders)
+			.then(txPromise => {
+				txPromise
+				.wait()
+				.then(tx => {
+					this.props.context.emitter.emit('Notify', 'warning', 'Dices are rolling');
+				})
+				.catch(console.error);
+			})
+			.catch(console.error);
+		})
+		.catch(console.error);
 	}
 
 	claim = (lotteryID) => () =>
 	{
-		// this.props.context.lottery
-		// .claim(lotteryID)
-		// .then(txPromise => {
-		// 	txPromise
-		// 	.wait()
-		// 	.then(tx => {
-		// 		this.props.context.emitter.emit('Notify', 'warning', 'Claim successfull');
-		// 	})
-		// 	.catch(console.error);
-		// })
-		// .catch(console.error);
+		this.props.context.contracts.lottery
+		.claim(lotteryID)
+		.then(txPromise => {
+			txPromise
+			.wait()
+			.then(tx => {
+				this.props.context.emitter.emit('Notify', 'warning', 'Claim successfull');
+			})
+			.catch(console.error);
+		})
+		.catch(console.error);
 	}
 
 	render()
@@ -233,11 +245,10 @@ class LotteryView extends React.Component
 		else if (this.state.metadata.status === 2                                                                         ) { code = +5; descr = "Finished"; color = "light";   }
 		else                                                                                                                { code = -1; descr = "Error";    color = "danger";  }
 
-		const owned = Object.values(this.props.context.tickets).filter(e => e.lotteryID.eq(this.props.id)).length;
 		return (
 			<div className="lottery">
 				<div className="header d-flex z-depth-2">
-				{ owned > 0 && <MDBBadge pill color="warning">{ owned }/{ this.state.metadata.ticketCount.toString() }</MDBBadge> }
+					{ this.state.owned > 0 && <MDBBadge pill color="warning">{ this.state.owned }/{ this.state.metadata.ticketCount.toString() }</MDBBadge> }
 					<MDBBtn color={color} disabled className="btn-sm col-2 z-depth-0">{descr}</MDBBtn>
 					<div className="mx-auto">
 						<MDBTable small borderless className="mb-0">
@@ -278,7 +289,7 @@ class LotteryView extends React.Component
 					}
 					{ ![1,3,4].includes(code) && <MDBBtn className="btn-sm col-2 invisible"/> }
 				</div>
-				<LotteryViewDetails id={this.props.id} details={this.state}/>
+				<LotteryViewModal id={this.props.id} details={this.state} context={this.props.context}/>
 			</div>
 		);
 	}
