@@ -40,7 +40,9 @@ class LotteryAdd extends React.Component
 	{
 		return (
 			<>
-				<MDBBtn gradient="blue" className="btn-sm mx-auto" onClick={this.toggle}>{this.props.text}</MDBBtn>
+				<MDBBtn gradient="blue" onClick={this.toggle} {...this.props}>
+					{this.props.children}
+				</MDBBtn>
 				<MDBModal isOpen={this.state.modal} toggle={this.toggle}>
 					<MDBModalHeader toggle={this.toggle}>Create new lottery</MDBModalHeader>
 					<MDBModalBody>

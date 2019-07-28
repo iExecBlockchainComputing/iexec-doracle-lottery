@@ -30,8 +30,8 @@ class LotteryViewModal extends React.Component
 				data:
 				{
 					columns: [
-						{ 'label': 'Token ID', 'field': 'tokenid', 'sort': 'asc' },
-						{ 'label': 'Owner',    'field': 'owner',   'sort': 'asc' },
+						{ 'label': 'Token ID', 'field': 'tokenid' },
+						{ 'label': 'Owner',    'field': 'owner'   },
 					],
 					rows: this.props.details.ticketIDs
 						.map(id => ({ id: id, ticket: this.props.context.getTicket(id) }))
@@ -48,7 +48,7 @@ class LotteryViewModal extends React.Component
 	render() {
 		return (
 			<>
-				<MDBModal isOpen={this.state.modal} toggle={this.toggle} size="lg">
+				<MDBModal isOpen={this.state.modal} toggle={this.toggle} size="lg" centered>
 					<MDBCard narrow>
 						<MDBCardHeader className="blue-gradient d-flex justify-content-between align-items-center">
 							<div>
@@ -58,7 +58,9 @@ class LotteryViewModal extends React.Component
 								</MDBBtn>
 							}
 							</div>
-							<span className="white-text mx-3">Lottery #{this.props.id}</span>
+							<div className="white-text mx-3">
+								Lottery #{this.props.id}
+							</div>
 							<div>
 							{
 								this.props.details.rolling &&
@@ -69,7 +71,16 @@ class LotteryViewModal extends React.Component
 							</div>
 						</MDBCardHeader>
 						<MDBCardBody cascade>
-							<MDBDataTable data={this.state.data} small responsive/>
+							<MDBDataTable
+								data={this.state.data}
+								small
+								responsive
+								entriesLabel=""
+								exportToCSV
+								// paging={false}
+								searching={false}
+								sortable={false}
+							/>
 						</MDBCardBody>
 					</MDBCard>
 				</MDBModal>

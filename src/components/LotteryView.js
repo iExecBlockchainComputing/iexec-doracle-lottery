@@ -245,6 +245,10 @@ class LotteryView extends React.Component
 		else if (this.state.metadata.status === 2                                                                         ) { code = +5; descr = "Finished"; color = "light";   }
 		else                                                                                                                { code = -1; descr = "Error";    color = "danger";  }
 
+		if (this.props.context.filter.hideFinished && this.state.metadata.status === 2) return null;
+		if (this.props.context.filter.myTickets    && !this.state.owned               ) return null;
+		if (this.props.context.filter.buyTickets   && code                       !== 1) return null;
+
 		return (
 			<div className="lottery">
 				<div className="header d-flex z-depth-2">
@@ -275,14 +279,14 @@ class LotteryView extends React.Component
 					}
 					{
 						code === 3 &&
-						<MDBBtn gradient="peach" className="btn-sm col-2 z-depth-0" onClick={this.rollDice(this.props.id)} >
+						<MDBBtn gradient="peach" className="btn-sm col-2 z-depth-0" onClick={this.rollDice(this.props.id)}>
 							Roll dice
 							<MDBIcon icon="dice" className="ml-2"/>
 						</MDBBtn>
 					}
 					{
 						code === 4 &&
-						<MDBBtn gradient="peach" className="btn-sm col-2 z-depth-0" onClick={this.claim(this.props.id)}    >
+						<MDBBtn gradient="peach" className="btn-sm col-2 z-depth-0" onClick={this.claim(this.props.id)}>
 							Claim
 							<MDBIcon icon="exclamation-triangle" className="ml-2"/>
 						</MDBBtn>

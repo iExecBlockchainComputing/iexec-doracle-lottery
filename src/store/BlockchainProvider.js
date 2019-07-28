@@ -29,6 +29,7 @@ class BlockchainProvider extends React.Component
 			fetchBalance: this.fetchBalance,
 			getTicket:    this.getTicket,
 			fetchTicket:  this.fetchTicket,
+			setFilter:    this.setFilter,
 		}
 	}
 
@@ -61,6 +62,7 @@ class BlockchainProvider extends React.Component
 				balance:      null,
 				tickets:      {},
 				ticketsCount: {},
+				filter:       {},
 			});
 
 			this.state.contracts.token.addListener(this.state.contracts.token.filters.Transfer(null, this.state.getWallet()), this.onERC20Transfer);
@@ -88,6 +90,7 @@ class BlockchainProvider extends React.Component
 				balance:      null,
 				tickets:      {},
 				ticketsCount: {},
+				filter:       {},
 			});
 
 			// reset
@@ -167,8 +170,13 @@ class BlockchainProvider extends React.Component
 	fetchTicket = async (id) => {
 		const owner   = await this.state.contracts.lottery.ownerOf(id);
 		const details = await this.state.contracts.lottery.viewTicket(id);
-		this.state.tickets[id] = { owner, details };
+
+		this.setState({ tickets: Object.assign(this.state.tickets, { [id]: { owner,details } }) });
 		this.state.emitter.emit('TicketFetched', id, owner, details.lotteryID);
+	}
+
+	setFilter = (key, value) => {
+		this.setState({ filter: Object.assign(this.state.filter, { [key]: value }) });
 	}
 
 	render() {
