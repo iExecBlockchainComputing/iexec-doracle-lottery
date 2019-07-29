@@ -10,7 +10,7 @@ class Nav extends React.Component
 		return (
 			<MDBNavbar color="special-color-dark" dark>
 				<MDBNavbarBrand>
-					The RLC lottery <span className="font-weight-lighter">- powered by the iExec Doracle solution</span>
+					The RLC lottery <span className="font-weight-lighter">- powered by iExec</span>
 				</MDBNavbarBrand>
 				<MDBNavbarNav left>
 				</MDBNavbarNav>
