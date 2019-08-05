@@ -178,14 +178,14 @@ class LotteryView extends React.Component
 	getWorkerpoolOrder = () => {
 		return new Promise((resolve, reject) => {
 			const network = this.props.context.getNetwork();
-			Promise.all(this.props.context.config.match.categories.map(cat => iexec.orderbook.fetchWorkerpoolOrderbook(network.chainId, cat.toString(), {})))
+			Promise.all(this.props.context.getNetwork().match.categories.map(cat => iexec.orderbook.fetchWorkerpoolOrderbook(network.chainId, cat.toString(), {})))
 			.then(orderbooks => {
 				resolve(
 					[]
 					.concat(...orderbooks.map(e => e.workerpoolOrders))
 					.filter(e => e.status === 'open')
 					.filter(e => !network.workerpool || e.order.workerpool === network.workerpool)
-					// .filter(e => e.order.tag == )
+					.filter(e => !network.match.tag  || e.order.tag === network.match.tag)
 					.sort((e1, e2) => e1.order.workerpoolprice - e2.order.workerpoolprice)[0]
 					.order
 				);

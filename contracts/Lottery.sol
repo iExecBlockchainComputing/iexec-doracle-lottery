@@ -10,9 +10,9 @@ contract Lottery is IexecDoracle, ERC721Full
 {
 	using SafeMath for uint256;
 
-	bytes32 public constant TAG    = 0x0000000000000000000000000000000000000000000000000000000000000000; // NO TEE
+	bytes32 public constant TAG    = 0x0000000000000000000000000000000000000000000000000000000000000001; // NO TEE
 	uint256 public constant TRUST  = 0; // No replication
-	string  public constant PARAMS = "";
+	string  public constant PARAMS = "python3 /app/randomGenerator.py";
 
 	IERC20 public token;
 

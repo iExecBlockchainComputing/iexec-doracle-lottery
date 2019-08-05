@@ -2,18 +2,14 @@ var Lottery = artifacts.require("Lottery");
 
 module.exports = async function(deployer, network, accounts)
 {
-	// chainId   = await web3.eth.net.getId();
-	// chainType = await web3.eth.net.getNetworkType();
-	console.log(`web3:      ${web3.version}`);
-	// console.log(`chainId:   ${chainId}`);
-	// console.log(`chainType: ${chainType}`);
+	console.log(`web3: ${web3.version}`);
 
 	switch (network)
 	{
 		case "kovan":
 		case "kovan-fork":
 			iexecHubAddr = "0xb3901d04CF645747b99DBbe8f2eE9cb41A89CeBF";
-			app          = "0xB43c71cb72A1EA1CAcF3F30F476155F48285F790";
+			app          = "0x4CB972bfA764D6bc220aaf7FCd4c72fbd05fA3a1";
 			dataset      = "0x0000000000000000000000000000000000000000"; // ANY
 			workerpool   = "0x0000000000000000000000000000000000000000"; // ANY
 			break;
