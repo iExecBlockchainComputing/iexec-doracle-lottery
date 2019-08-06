@@ -37,7 +37,6 @@ class LotteryList extends React.Component
 
 	render()
 	{
-						// <MDBCardTitle></MDBCardTitle>
 		return (
 			<>
 				<MDBCard className="text-center m-2">

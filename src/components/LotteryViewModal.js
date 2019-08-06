@@ -1,6 +1,7 @@
 import React from "react";
 import { MDBBtn, MDBCard, MDBCardHeader, MDBCardBody, MDBDataTable, MDBIcon, MDBModal } from 'mdbreact';
 
+import TicketTransferModal from './TicketTransferModal';
 import { rlcFormat, strPadLeft } from '../utils';
 
 class LotteryViewModal extends React.Component
@@ -32,6 +33,7 @@ class LotteryViewModal extends React.Component
 					columns: [
 						{ 'label': 'Token ID', 'field': 'tokenid' },
 						{ 'label': 'Owner',    'field': 'owner'   },
+						{ 'label': 'Extra',    'field': 'extra'   },
 					],
 					rows: this.props.details.ticketIDs
 						.map(id => ({ id: id, ticket: this.props.context.getTicket(id) }))
@@ -39,6 +41,7 @@ class LotteryViewModal extends React.Component
 						.map(({id, ticket}) => ({
 							tokenid: <a target="_blank" className="text-center" href={`${this.props.context.getNetwork().etherscan}/token/${this.props.context.contracts.lottery.address}?a=${id}`}                                     rel="noopener noreferrer">{ strPadLeft(id.toString(), '0', 77) }</a>,
 							owner:   <a target="_blank" className="text-center" href={`${this.props.context.getNetwork().etherscan}/token/${this.props.context.contracts.lottery.address}?a=${this.props.context.getTicket(id).owner}`} rel="noopener noreferrer">{ ticket.owner }</a>,
+							extra:   <TicketTransferModal gradient="blue" className="btn-sm" id={id} details={this.props.details} context={this.props.context}/>,
 						}))
 				}
 			});
@@ -48,7 +51,7 @@ class LotteryViewModal extends React.Component
 	render() {
 		return (
 			<>
-				<MDBModal isOpen={this.state.modal} toggle={this.toggle} size="lg" centered>
+				<MDBModal isOpen={this.state.modal} toggle={this.toggle} size="fluid" centered>
 					<MDBCard narrow>
 						<MDBCardHeader className="blue-gradient d-flex justify-content-between align-items-center">
 							<div>
